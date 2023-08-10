@@ -14,6 +14,7 @@
 
 #include "../buffer/buffer.h"
 #include "../log/log.h"
+#include "stack.h"
 
 class HttpResponse {
 public:

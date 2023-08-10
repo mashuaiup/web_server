@@ -93,3 +93,9 @@ make
 * config配置
 * 完善单元测试
 * 实现循环缓冲区
+
+
+
+### TODO
+1、自定义协议栈没有实现对setsockopt的实现
+2、自定义协议栈没有实现对SetFdNonblock的实现

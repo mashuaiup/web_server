@@ -36,7 +36,7 @@ void HttpConn::Close() {
     if(isClose_ == false){
         isClose_ = true; 
         userCount--;
-        close(fd_);
+        nclose(fd_);
         LOG_INFO("Client[%d](%s:%d) quit, UserCount:%d", fd_, GetIP(), GetPort(), (int)userCount);
     }
 }
@@ -71,7 +71,7 @@ ssize_t HttpConn::read(int* saveErrno) {
 ssize_t HttpConn::write(int* saveErrno) {
     ssize_t len = -1;
     do {
-        len = writev(fd_, iov_, iovCnt_);
+        len = nwritev(fd_, iov_, iovCnt_);
         if(len <= 0) {
             *saveErrno = errno;
             break;

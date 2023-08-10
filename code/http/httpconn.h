@@ -18,6 +18,7 @@
 #include "../buffer/buffer.h"
 #include "httprequest.h"
 #include "httpresponse.h"
+#include "stack.h"
 
 class HttpConn {
 public:

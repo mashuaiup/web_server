@@ -43,7 +43,7 @@ WebServer::WebServer(
 }
 
 WebServer::~WebServer() {
-    close(listenFd_);
+    nclose(listenFd_);
     isClose_ = true;
     free(srcDir_);
     SqlConnPool::Instance()->ClosePool();
@@ -81,19 +81,23 @@ void WebServer::Start() {
         if(timeoutMS_ > 0) {
             timeMS = timer_->GetNextTick();
         }
+        LOG_INFO("开始start");
         int eventCnt = epoller_->Wait(timeMS);
         for(int i = 0; i < eventCnt; i++) {
             /* 处理事件 */
+            LOG_INFO("已经触发了epoll事件");
             int fd = epoller_->GetEventFd(i);
             uint32_t events = epoller_->GetEvents(i);
             if(fd == listenFd_) {
                 DealListen_();
+                LOG_INFO("处理监听完成\n");
             }
             else if(events & (EPOLLRDHUP | EPOLLHUP | EPOLLERR)) {
                 assert(users_.count(fd) > 0);
                 CloseConn_(&users_[fd]);
             }
             else if(events & EPOLLIN) {
+                LOG_INFO("开始处理读取数据");
                 assert(users_.count(fd) > 0);
                 DealRead_(&users_[fd]);
             }
@@ -109,11 +113,11 @@ void WebServer::Start() {
 
 void WebServer::SendError_(int fd, const char*info) {
     assert(fd > 0);
-    int ret = send(fd, info, strlen(info), 0);
+    int ret = nsend(fd, info, strlen(info), 0);
     if(ret < 0) {
         LOG_WARN("send error to client[%d] error!", fd);
     }
-    close(fd);
+    nclose(fd);
 }
 
 void WebServer::CloseConn_(HttpConn* client) {
@@ -138,7 +142,7 @@ void WebServer::DealListen_() {
     struct sockaddr_in addr;
     socklen_t len = sizeof(addr);
     do {
-        int fd = accept(listenFd_, (struct sockaddr *)&addr, &len);
+        int fd = naccept(listenFd_, (struct sockaddr *)&addr, &len);
         if(fd <= 0) { return;}
         else if(HttpConn::userCount >= MAX_FD) {
             SendError_(fd, "Server busy!");
@@ -219,56 +223,56 @@ bool WebServer::InitSocket_() {
     addr.sin_family = AF_INET;
     addr.sin_addr.s_addr = htonl(INADDR_ANY);
     addr.sin_port = htons(port_);
-    struct linger optLinger = { 0 };
-    if(openLinger_) {
-        /* 优雅关闭: 直到所剩数据发送完毕或超时 */
-        optLinger.l_onoff = 1;
-        optLinger.l_linger = 1;
-    }
+    // struct linger optLinger = { 0 };
+    // if(openLinger_) {
+    //     /* 优雅关闭: 直到所剩数据发送完毕或超时 */
+    //     optLinger.l_onoff = 1;
+    //     optLinger.l_linger = 1;
+    // }
 
-    listenFd_ = socket(AF_INET, SOCK_STREAM, 0);
+    listenFd_ = nsocket(AF_INET, SOCK_STREAM, 0);
     if(listenFd_ < 0) {
         LOG_ERROR("Create socket error!", port_);
         return false;
     }
 
-    ret = setsockopt(listenFd_, SOL_SOCKET, SO_LINGER, &optLinger, sizeof(optLinger));
+    /* ret = setsockopt(listenFd_, SOL_SOCKET, SO_LINGER, &optLinger, sizeof(optLinger));
     if(ret < 0) {
-        close(listenFd_);
+        nclose(listenFd_);
         LOG_ERROR("Init linger error!", port_);
         return false;
-    }
+    } */
 
-    int optval = 1;
+    // int optval = 1;
     /* 端口复用 */
     /* 只有最后一个套接字会正常接收数据。 */
-    ret = setsockopt(listenFd_, SOL_SOCKET, SO_REUSEADDR, (const void*)&optval, sizeof(int));
-    if(ret == -1) {
-        LOG_ERROR("set socket setsockopt error !");
-        close(listenFd_);
-        return false;
-    }
+    // ret = setsockopt(listenFd_, SOL_SOCKET, SO_REUSEADDR, (const void*)&optval, sizeof(int));
+    // if(ret == -1) {
+    //     LOG_ERROR("set socket setsockopt error !");
+    //     nclose(listenFd_);
+    //     return false;
+    // }
 
-    ret = bind(listenFd_, (struct sockaddr *)&addr, sizeof(addr));
+    ret = nbind(listenFd_, (struct sockaddr *)&addr, sizeof(addr));
     if(ret < 0) {
         LOG_ERROR("Bind Port:%d error!", port_);
-        close(listenFd_);
+        nclose(listenFd_);
         return false;
     }
 
-    ret = listen(listenFd_, 6);
+    ret = nlisten(listenFd_, 6);
     if(ret < 0) {
         LOG_ERROR("Listen port:%d error!", port_);
-        close(listenFd_);
+        nclose(listenFd_);
         return false;
     }
     ret = epoller_->AddFd(listenFd_,  listenEvent_ | EPOLLIN);
     if(ret == 0) {
         LOG_ERROR("Add listen error!");
-        close(listenFd_);
+        nclose(listenFd_);
         return false;
     }
-    SetFdNonblock(listenFd_);
+    // SetFdNonblock(listenFd_);
     LOG_INFO("Server port:%d", port_);
     return true;
 }

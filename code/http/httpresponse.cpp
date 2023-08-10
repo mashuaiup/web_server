@@ -136,7 +136,7 @@ void HttpResponse::AddContent_(Buffer& buff) {
         return; 
     }
     mmFile_ = (char*)mmRet;
-    close(srcFd);
+    nclose(srcFd);
     buff.Append("Content-length: " + to_string(mmFileStat_.st_size) + "\r\n\r\n");
 }
 
