@@ -59,24 +59,29 @@ int HttpConn::GetPort() const {
 
 ssize_t HttpConn::read(int* saveErrno) {
     ssize_t len = -1;
-    do {
+    // do {
         len = readBuff_.ReadFd(fd_, saveErrno);
         if (len <= 0) {
-            break;
+            // break;
+            printf("readBuff_.ReadFd error!\n");
         }
-    } while (isET);
+    // } while (isET);
     return len;
 }
 
 ssize_t HttpConn::write(int* saveErrno) {
     ssize_t len = -1;
-    do {
+    // do {
         len = nwritev(fd_, iov_, iovCnt_);
         if(len <= 0) {
             *saveErrno = errno;
-            break;
+            // break;
+            return len;
         }
-        if(iov_[0].iov_len + iov_[1].iov_len  == 0) { break; } /* 传输结束 */
+        if(iov_[0].iov_len + iov_[1].iov_len  == 0) { 
+            return len;
+            // break; 
+        } /* 传输结束 */
         else if(static_cast<size_t>(len) > iov_[0].iov_len) {
             iov_[1].iov_base = (uint8_t*) iov_[1].iov_base + (len - iov_[0].iov_len);
             iov_[1].iov_len -= (len - iov_[0].iov_len);
@@ -90,7 +95,7 @@ ssize_t HttpConn::write(int* saveErrno) {
             iov_[0].iov_len -= len; 
             writeBuff_.Retrieve(len);
         }
-    } while(isET || ToWriteBytes() > 10240);
+    // } while(isET || ToWriteBytes() > 10240);
     return len;
 }
 

@@ -81,8 +81,9 @@ void WebServer::Start() {
         if(timeoutMS_ > 0) {
             timeMS = timer_->GetNextTick();
         }
-        LOG_INFO("开始start");
+        LOG_INFO("开始while并且epoll_wait之前^^^^^^^\n");
         int eventCnt = epoller_->Wait(timeMS);
+        LOG_INFO("开始while并且epoll_wait结束^^^^^^\n");
         for(int i = 0; i < eventCnt; i++) {
             /* 处理事件 */
             LOG_INFO("已经触发了epoll事件");
@@ -97,13 +98,16 @@ void WebServer::Start() {
                 CloseConn_(&users_[fd]);
             }
             else if(events & EPOLLIN) {
-                LOG_INFO("开始处理读取数据");
+                LOG_INFO("开始处理读取数据\n");
                 assert(users_.count(fd) > 0);
                 DealRead_(&users_[fd]);
+                LOG_INFO("读取数据完成\n");
             }
             else if(events & EPOLLOUT) {
+                LOG_INFO("》》》》》》》》》》》》》》》》》》开始写回数据\n");
                 assert(users_.count(fd) > 0);
                 DealWrite_(&users_[fd]);
+                LOG_INFO("》》》》》》》》》》》》》》》》》》完成数据的写回\n");
             } else {
                 LOG_ERROR("Unexpected event");
             }
@@ -133,15 +137,16 @@ void WebServer::AddClient_(int fd, sockaddr_in addr) {
     if(timeoutMS_ > 0) {
         timer_->add(fd, timeoutMS_, std::bind(&WebServer::CloseConn_, this, &users_[fd]));
     }
-    epoller_->AddFd(fd, EPOLLIN | connEvent_);
-    SetFdNonblock(fd);
+    // epoller_->AddFd(fd, EPOLLIN | connEvent_);
+    epoller_->AddFd(fd, EPOLLIN);
+    // SetFdNonblock(fd);
     LOG_INFO("Client[%d] in!", users_[fd].GetFd());
 }
 
 void WebServer::DealListen_() {
     struct sockaddr_in addr;
     socklen_t len = sizeof(addr);
-    do {
+    // do {
         int fd = naccept(listenFd_, (struct sockaddr *)&addr, &len);
         if(fd <= 0) { return;}
         else if(HttpConn::userCount >= MAX_FD) {
@@ -150,7 +155,7 @@ void WebServer::DealListen_() {
             return;
         }
         AddClient_(fd, addr);
-    } while(listenEvent_ & EPOLLET);
+    // } while(listenEvent_ & EPOLLET);
 }
 
 void WebServer::DealRead_(HttpConn* client) {
@@ -184,9 +189,12 @@ void WebServer::OnRead_(HttpConn* client) {
 
 void WebServer::OnProcess(HttpConn* client) {
     if(client->process()) {
-        epoller_->ModFd(client->GetFd(), connEvent_ | EPOLLOUT);
+        // epoller_->ModFd(client->GetFd(), connEvent_ | EPOLLOUT);
+        LOG_INFO("read处理完成修改fd的事件类别为:EPOLLOUT\n");
+        epoller_->ModFd(client->GetFd(),  EPOLLOUT);
     } else {
-        epoller_->ModFd(client->GetFd(), connEvent_ | EPOLLIN);
+        // epoller_->ModFd(client->GetFd(), connEvent_ | EPOLLIN);
+        epoller_->ModFd(client->GetFd(),  EPOLLIN);
     }
 }
 

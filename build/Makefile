@@ -11,7 +11,7 @@ CFLAGS += -I/root/protocol_stack
 CFLAGS += -I/root/protocol_stack/std
 
 all: $(OBJS)
-	$(CXX) $(CFLAGS) $(OBJS) -o ../bin/$(TARGET) $(LDLIBS) -ldpdk -lprotostack -pthread -lmysqlclient
+	$(CXX) $(CFLAGS) $(OBJS) -o  ../bin/$(TARGET) -g $(LDLIBS) -ldpdk -lprotostack -pthread -lmysqlclient
 clean:
 	rm -rf ../bin/$(TARGET)
 

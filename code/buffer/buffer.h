@@ -13,6 +13,7 @@
 #include <vector> //readv
 #include <atomic>
 #include <assert.h>
+#include "stack.h"
 class Buffer {
 public:
     Buffer(int initBuffSize = 1024);
